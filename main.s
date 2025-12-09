@@ -13,11 +13,6 @@ tmp_f:  .space 4       # espacio temporal para swap
 .text
 .globl main
 main:
-    jal Menu
-    li $v0, 10
-    syscall
-
-Menu:
 menu_loop:
     # Print menu
     la $a0, menuStr
@@ -106,7 +101,7 @@ inner_loop:
     c.lt.s $f1, $f0       # true si f1 < f0  => list[j+1] < list[j]
     bc1f no_swap          # si FALSE -> no swap (list[j] <= list[j+1])
 
-    # do swap usando tmp en memoria (más portable que mov.s)
+    # do swap usando tmp en memoria (mÃ¡s portable que mov.s)
     swc1 $f0, tmp_f       # tmp = f0
     swc1 $f1, 0($t4)      # list[j] = f1
     lwc1 $f2, tmp_f
