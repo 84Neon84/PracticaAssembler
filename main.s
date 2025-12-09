@@ -5,6 +5,11 @@ invalidStr: .asciiz "Opcion no valida. Intente de nuevo.\n"
 exitStr:    .asciiz "Saliendo del programa.\n"
 buf:        .space 8
 
+# Variables para el bubble sort
+list:   .space 200     # 50 floats (ejemplo)
+length: .word 0
+tmp_f:  .space 4       # espacio temporal para swap
+
 .text
 .globl main
 main:
@@ -60,6 +65,67 @@ op_N:
 
 op_O:
     jal OrdenarLista
+bubble_sort:
+    # PROLOGO
+    addi $sp, $sp, -8
+    sw   $ra, 4($sp)
+    sw   $s0, 0($sp)      # guardamos $s0 (i)
+
+    lw   $t0, length      # t0 = n
+    blez $t0, end_bubble
+
+    addi $s0, $zero, 0    # i = 0
+
+outer_loop:
+    lw   $t0, length
+    addi $t1, $t0, -1
+    bge  $s0, $t1, end_bubble
+
+    addi $t2, $zero, 0    # j = 0
+
+inner_loop:
+    lw   $t0, length
+    sub  $t3, $t0, $s0
+    addi $t3, $t3, -1
+    bge  $t2, $t3, end_inner
+
+    # carga list[j] -> f0
+    la   $t4, list
+    sll  $t5, $t2, 2
+    add  $t4, $t4, $t5
+    lwc1 $f0, 0($t4)
+
+    # carga list[j+1] -> f1
+    la   $t6, list
+    addi $t7, $t2, 1
+    sll  $t7, $t7, 2
+    add  $t6, $t6, $t7
+    lwc1 $f1, 0($t6)
+
+    # comparar: swap si list[j] > list[j+1]  <=> f0 > f1
+    c.lt.s $f1, $f0       # true si f1 < f0  => list[j+1] < list[j]
+    bc1f no_swap          # si FALSE -> no swap (list[j] <= list[j+1])
+
+    # do swap usando tmp en memoria (más portable que mov.s)
+    swc1 $f0, tmp_f       # tmp = f0
+    swc1 $f1, 0($t4)      # list[j] = f1
+    lwc1 $f2, tmp_f
+    swc1 $f2, 0($t6)      # list[j+1] = tmp
+
+no_swap:
+    addi $t2, $t2, 1
+    j inner_loop
+
+end_inner:
+    addi $s0, $s0, 1
+    j outer_loop
+
+end_bubble:
+    # EPILOGO
+    lw   $s0, 0($sp)
+    lw   $ra, 4($sp)
+    addi $sp, $sp, 8
+    jr   $ra
     j menu_loop
 
 op_P:
