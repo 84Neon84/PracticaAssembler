@@ -211,21 +211,21 @@ loop2CountNum:
     beq  $t4, $t2, finishLoop2CountNum #if j = i the loop ends
     lwc1 $f1, 0($t7)   
     c.eq.s $f0, $f1
-    bc1t new_value     #if list[i] = list[j] add 1 to different numbers count
+    bc1t addNewValue     #if list[i] = list[j] adds 1 to different numbers count
     addi $t7, $t7, 4
     addi $t4, $t4, 1
-    j    loop2
+    j    loop2CountNum
 
 addNewValue:
     addi $t2, $t2, 1
     addi $t3, $t3, 4
-    j    loop1
+    j    loop1CountNum
 
 finishLoop2CountNum:
     addi $t1, $t1, 1
     addi $t2, $t2, 1
     addi $t3, $t3, 4
-    j    loop1
+    j    loop1CountNum
 
 finishLoop1CountNum:
     move $a0, $t1
