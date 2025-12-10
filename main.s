@@ -124,7 +124,7 @@ end_bubble:
     j menu_loop
 
 op_P:
-    jal MostrarLista
+    jal MostrarLista #Modificar
     j menu_loop
 
 op_C:
@@ -136,11 +136,11 @@ op_A:
     j menu_loop
 
 op_M_upper:
-    jal BuscarValorMaximo
+    jal BuscarValorMaximo #Modificar
     j menu_loop
 
 op_m_lower:
-    jal BuscarValorMinimo
+    jal BuscarValorMinimo #Modificar
     j menu_loop
 
 op_S:
@@ -159,8 +159,39 @@ OrdenarLista:
     jr $ra
 
 MostrarLista:
-    # 
-    jr $ra
+    #Guardamos parametros y retorno en pila
+    addi $sp $sp -24
+    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1 16($sp)
+    sw $a2 12($sp)
+    sw $a3 8($sp)
+    sw $ra 4($sp) #Valor de retorno
+    
+    move $t0 $a0 
+    mtc1  $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
+
+    loop_mostrar:
+        lwc1 $f12 0($t0) #Metemos el valor al que apunta t0 a f12 para que posteriormente se pueda imprimir
+
+        c.eq.s $f12 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
+        bc1t   loop_end_mostrar #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
+
+        jal printNum #Si no hemos saltado imprimimos ese numero con la funcion printNum
+
+        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        j loop_mostrar
+        #Volvemos a iterar
+
+    loop_end_mostrar:
+
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
+
+        jr $ra #Volvemos al main
 
 ContarNumeros:
     # 
@@ -171,9 +202,106 @@ CalcularMediaAritmetica:
     jr $ra
 
 BuscarValorMaximo:
-    # 
-    jr $ra
+     #Guardamos parametros y retorno en pila
+    addi $sp $sp -24
+    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1 16($sp)
+    sw $a2 12($sp)
+    sw $a3 8($sp)
+    sw $ra 4($sp) #Valor de retorno
+    
+    move $t0 $a0 
+    mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
+
+    #Consideramos f12 como el numero mayor que vamos a imprimir
+    li $t1 0xff7fffff
+    mtc1 $t1 $f12   #Metemos el valor flotante menor en el registro f12 para que el la primera iteracion reciba el primer numero de la lista que queremos comparar
+    
+    loop_maximo:
+        lwc1 $f1 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
+
+        #while(listaNumeros[i] != 0) seguimos iterando
+        c.eq.s $f1 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
+        bc1t   loop_end_maximo #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
+
+        #if(numeroMayor < listaNumeros[i]) numeroMayor = listaNumeros[i]
+        c.le.s $f12 $f1 #Comparamos si $f12 es menor o igual que $f1 si se cumple entonces tenemos que reasignar
+        bc1f notReasignNumMax #En el caso en el que no se cumpla esta condicion saltamos y no reasignamos, sino reasignamos por defecto
+    
+        mov.s $f12 $f1     # numeroMayor = listaNumeros[i]
+
+        notReasignNumMax:
+        #i++
+        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        j loop_maximo #Volvemos a iterar
+
+    loop_end_maximo:
+
+        jal printNum #Si hemos acabado el bucle saltamos para printear el numero que se ha considerado mayor
+
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
+
+        jr $ra #Volvemos al main
 
 BuscarValorMinimo:
-    # 
+     #Guardamos parametros y retorno en pila
+    addi $sp $sp -24
+    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1 16($sp)
+    sw $a2 12($sp)
+    sw $a3 8($sp)
+    sw $ra 4($sp) #Valor de retorno
+    
+    move $t0 $a0 
+    mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
+
+    #Consideramos f12 como el numero menor que vamos a imprimir
+    li $t1 0x7f7fffff
+    mtc1 $t1 $f12   #Metemos el valor flotante mayor en el registro f12 para que el la primera iteracion reciba el primer numero de la lista que queremos comparar
+    
+    loop_minimo:
+        lwc1 $f1 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
+
+        #while(listaNumeros[i] != 0) seguimos iterando
+        c.eq.s $f1 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
+        bc1t   loop_end_minimo #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
+
+        #if(numeroMenor > listaNumeros[i]) numeroMenor = listaNumeros[i]
+        c.le.s $f1 $f12 #Comparamos si $f1 es menor o igual que $f12 si se cumple entonces tenemos que reasignar
+        bc1f notReasignNumMin #En el caso en el que no se cumpla esta condicion saltamos y no reasignamos, sino reasignamos por defecto
+    
+        mov.s $f12 $f1     # numeroMenor = listaNumeros[i]
+
+        notReasignNumMin:
+        #i++
+        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        j loop_minimo #Volvemos a iterar
+
+    loop_end_minimo:
+
+        jal printNum #Si hemos acabado el bucle saltamos para printear el numero que se ha considerado menor
+
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
+
+        jr $ra #Volvemos al main
+
+printNum:
+    
+    li $v0 2
+    syscall
+
+    li $v0 11
+    li $a0 10
+    syscall
+
     jr $ra
