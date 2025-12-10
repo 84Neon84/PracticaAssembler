@@ -194,8 +194,45 @@ MostrarLista:
         jr $ra #Volvemos al main
 
 ContarNumeros:
-    # 
-    jr $ra
+    la   $a0, list
+    li   $a1, length
+    li   $t1, 0        # different numbers count
+    li   $t2, 0        # iteration variable i
+    move $t0, $a0      
+    move $t3, $t0      
+
+loop1CountNum:
+    bge  $t2, $a1, finishLoop1CountNum #if i<list size the loop ends
+    lwc1 $f0, 0($t3)   
+    move $t7, $t0      
+    li   $4, 0        # iteration variable j
+
+loop2CountNum:
+    beq  $t4, $t2, finishLoop2CountNum #if j = i the loop ends
+    lwc1 $f1, 0($t7)   
+    c.eq.s $f0, $f1
+    bc1t new_value     #if list[i] = list[j] add 1 to different numbers count
+    addi $t7, $t7, 4
+    addi $t4, $t4, 1
+    j    loop2
+
+addNewValue:
+    addi $t2, $t2, 1
+    addi $t3, $t3, 4
+    j    loop1
+
+finishLoop2CountNum:
+    addi $t1, $t1, 1
+    addi $t2, $t2, 1
+    addi $t3, $t3, 4
+    j    loop1
+
+finishLoop1CountNum:
+    move $a0, $t1
+    li   $v0, 1
+    syscall
+    jr   $ra
+
 
 CalcularMediaAritmetica:
     # 
