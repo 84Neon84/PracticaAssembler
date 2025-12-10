@@ -60,7 +60,41 @@ op_N:
 
 op_O:
     jal OrdenarLista
-bubble_sort:
+    j menu_loop
+
+op_P:
+    jal MostrarLista #Modificar
+    j menu_loop
+
+op_C:
+    jal ContarNumeros
+    j menu_loop
+
+op_A:
+    jal CalcularMediaAritmetica
+    j menu_loop
+
+op_M_upper:
+    jal BuscarValorMaximo #Modificar
+    j menu_loop
+
+op_m_lower:
+    jal BuscarValorMinimo #Modificar
+    j menu_loop
+
+op_S:
+    la $a0, exitStr
+    li $v0, 4
+    syscall
+    li $v0, 10
+    syscall
+
+NuevaLista:
+    # 
+    jr $ra
+
+OrdenarLista:
+    bubble_sort:
     # PROLOGO
     addi $sp, $sp, -8
     sw   $ra, 4($sp)
@@ -121,42 +155,6 @@ end_bubble:
     lw   $ra, 4($sp)
     addi $sp, $sp, 8
     jr   $ra
-    j menu_loop
-
-op_P:
-    jal MostrarLista #Modificar
-    j menu_loop
-
-op_C:
-    jal ContarNumeros
-    j menu_loop
-
-op_A:
-    jal CalcularMediaAritmetica
-    j menu_loop
-
-op_M_upper:
-    jal BuscarValorMaximo #Modificar
-    j menu_loop
-
-op_m_lower:
-    jal BuscarValorMinimo #Modificar
-    j menu_loop
-
-op_S:
-    la $a0, exitStr
-    li $v0, 4
-    syscall
-    li $v0, 10
-    syscall
-
-NuevaLista:
-    # 
-    jr $ra
-
-OrdenarLista:
-    # 
-    jr $ra
 
 MostrarLista:
     #Guardamos parametros y retorno en pila
