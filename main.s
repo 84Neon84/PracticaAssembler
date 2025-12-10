@@ -205,7 +205,7 @@ loop1CountNum:
     bge  $t2, $a1, finishLoop1CountNum #if i<list size the loop ends
     lwc1 $f0, 0($t3)   
     move $t7, $t0      
-    li   $4, 0        # iteration variable j
+    li   $t4, 0        # iteration variable j
 
 loop2CountNum:
     beq  $t4, $t2, finishLoop2CountNum #if j = i the loop ends
