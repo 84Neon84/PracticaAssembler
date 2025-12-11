@@ -6,20 +6,26 @@ exitStr:    .asciiz "Saliendo del programa.\n"
 buf:        .space 8
 
 # Variables de Nueva lista
+.align 2
 floatList: .space 200        # Espacio para 50 floats (4 bytes cada uno)
 msg1: .asciiz "Ingrese un número en coma flotante (0 para terminar): "
-newline: .asciiz "\n"
+newline: .asciiz "\n\n"
 countMsg: .asciiz "Números ingresados: "
 zeroFloat: .float 0.0        # Constante para comparar
 counter: .word 0             # Contador
 
 # Variables para el bubble sort
-list:   .space 200     # 50 floats (ejemplo)
-length: .word 0
-tmp_f:  .space 4       # espacio temporal para swap
+.align 2
+tmp_f:  .float 0.0       # espacio temporal para swap
 
 # Variables media aritmetica
 mediaMsg: .asciiz "Media aritmetica: "
+# Mensaje contar numeros distintos
+distinctCountMsg: .asciiz "Cantidad de numeros distintos: "
+# Mensaje valor maximo
+maxMsg: .asciiz "Valor maximo: "
+# Mensaje valor minimo
+minMsg: .asciiz "Valor minimo: "
 
 .text
 .globl main
@@ -101,20 +107,20 @@ op_S:
     syscall
 
 NuevaLista:
-    # Inicializar contador y puntero
-    sw $zero, counter         # counter = 0
-    la $t1, floatList         # puntero a la lista
-    li $t2, 50                # maximo de elementos permitidos
-
-inputLoop:
     # PROLOGO
     addiu $sp, $sp, -20
     sw $ra, 16($sp)
     sw $t1, 12($sp)
     sw $t2, 8($sp)
     sw $t3, 4($sp)
-    sw $t0, 0($sp)            # (por si lo usas)
+    sw $t0, 0($sp)
 
+    # Inicializar contador y puntero
+    sw $zero, counter         # counter = 0
+    la $t1, floatList         # puntero a la lista
+    li $t2, 50                # maximo de elementos permitidos
+
+inputLoop:
     # Imprimir mensaje
     la $a0, msg1
     li $v0, 4
@@ -178,46 +184,46 @@ OrdenarLista:
     sw   $ra, 4($sp)
     sw   $s0, 0($sp)      # guardamos $s0 (i)
 
-    lw   $t0, length      # t0 = n
+    lw   $t0, counter       # t0 = n
     blez $t0, end_bubble
 
-    addi $s0, $zero, 0    # i = 0
+    addi $s0, $zero, 0     # i = 0
 
 outer_loop:
-    lw   $t0, length
+    lw   $t0, counter
     addi $t1, $t0, -1
     bge  $s0, $t1, end_bubble
 
-    addi $t2, $zero, 0    # j = 0
+    addi $t2, $zero, 0     # j = 0
 
 inner_loop:
-    lw   $t0, length
+    lw   $t0, counter
     sub  $t3, $t0, $s0
-    addi $t3, $t3, -1
+    addi $t3, $t3, -1       # t3 = counter - i - 1
     bge  $t2, $t3, end_inner
 
     # carga list[j] -> f0
-    la   $t4, list
+    la   $t4, floatList
     sll  $t5, $t2, 2
     add  $t4, $t4, $t5
     lwc1 $f0, 0($t4)
 
     # carga list[j+1] -> f1
-    la   $t6, list
+    la   $t6, floatList
     addi $t7, $t2, 1
     sll  $t7, $t7, 2
     add  $t6, $t6, $t7
     lwc1 $f1, 0($t6)
 
     # comparar: swap si list[j] > list[j+1]  <=> f0 > f1
-    c.lt.s $f1, $f0       # true si f1 < f0  => list[j+1] < list[j]
-    bc1f no_swap          # si FALSE -> no swap (list[j] <= list[j+1])
+    c.lt.s $f1, $f0        # true si f1 < f0  => list[j+1] < list[j]
+    bc1f no_swap            # si FALSE -> no swap (list[j] <= list[j+1])
 
     # do swap usando tmp en memoria (más portable que mov.s)
-    swc1 $f0, tmp_f       # tmp = f0
-    swc1 $f1, 0($t4)      # list[j] = f1
+    swc1 $f0, tmp_f         # tmp = f0
+    swc1 $f1, 0($t4)        # list[j] = f1
     lwc1 $f2, tmp_f
-    swc1 $f2, 0($t6)      # list[j+1] = tmp
+    swc1 $f2, 0($t6)        # list[j+1] = tmp
 
 no_swap:
     addi $t2, $t2, 1
@@ -234,81 +240,106 @@ end_bubble:
     addi $sp, $sp, 8
     jr   $ra
 
+
 MostrarLista:
     #Guardamos parametros y retorno en pila
-    addi $sp $sp -24
-    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
-    sw $a1 16($sp)
-    sw $a2 12($sp)
-    sw $a3 8($sp)
-    sw $ra 4($sp) #Valor de retorno
-    
-    move $t0 $a0 
-    mtc1  $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
+    addiu $sp, $sp, -24
+    sw $a0, 20($sp)
+    sw $a1, 16($sp)
+    sw $a2, 12($sp)
+    sw $a3, 8($sp)
+    sw $ra, 4($sp)
 
-    loop_mostrar:
-        lwc1 $f12 0($t0) #Metemos el valor al que apunta t0 a f12 para que posteriormente se pueda imprimir
+    # Usamos floatList y counter
+    la   $t0, floatList    # puntero a inicio lista
+    lw   $t1, counter      # numero de elementos
+    beq  $t1, $zero, loop_end_mostrar  # si no hay elementos salir
 
-        c.eq.s $f12 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
-        bc1t   loop_end_mostrar #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
+loop_mostrar:
 
-        jal printNum #Si no hemos saltado imprimimos ese numero con la funcion printNum
+    beqz $t1, loop_end_mostrar # Si el contador es 0, salir del bucle
 
-        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
-        j loop_mostrar
-        #Volvemos a iterar
+    lwc1 $f12, 0($t0) #Metemos el valor al que apunta t0 a f12 para que posteriormente se pueda imprimir
+    li $v0, 2 # Imprimir float
+    syscall
 
-    loop_end_mostrar:
+    li $v0, 4 #Movemos el puntero al siguiente numero (4 bytes) y salto de linea
+    la $a0, newline
+    syscall
 
-        lw $ra 4($sp)
-        lw $a3 8($sp)
-        lw $a2 12($sp)
-        lw $a1 16($sp)
-        lw $a0 20($sp)
-        addi $sp $sp 24
+    addiu $t0, $t0, 4 # Avanzar al siguiente número (puntero += 4)
+    addiu $t1, $t1, -1 # contador--
+    j loop_mostrar # Continuar
 
-        jr $ra #Volvemos al main
+loop_end_mostrar:
+
+    lw $ra, 4($sp)
+    lw $a3, 8($sp)
+    lw $a2, 12($sp)
+    lw $a1, 16($sp)
+    lw $a0, 20($sp)
+    addiu $sp, $sp, 24
+
+    jr $ra #Volvemos al main
+
 
 ContarNumeros:
-    la   $a0 list
-    li   $a1 length
-    li   $t1 0  #different values counter      
-    li   $t2 0  #iteration variable i      
-    move $t0 $a0      
-    move $t3 $t0      
+    la   $a0, floatList
+    lw   $a1, counter   # a1 = numero de elementos (n)
+    li   $t1, 0  #contador de numeros distintos     
+    li   $t2, 0  #variable de iteracion i     
+    move $t0, $a0      # t0 = base pointer
+    move $t3, $t0      # t3 sera puntero a elemento i
+
+    # Si no hay elementos imprimimos 0 y volvemos
+    beq  $a1, $zero, finish_loop1CountNum
 
 loop1CountNum:
-    bge $t2 $a1 finish_loop1CountNum #if i is >= than the length of the list the loop ends
-    lwc1 $f0 0($t3)
-    move $t7 $t0      
-    li   $t4 0  #iteration variable j
-    li   $t5 1  #variable "bool" newValue   
+    # bge $t2 $a1 finish_loop1CountNum #if i is >= than the counter of the list the loop ends
+    # Implementamos comparacion i >= n:
+    move $t4, $t2
+    blt  $t4, $a1, cont_outer_count
+    j    finish_loop1CountNum
+
+cont_outer_count:
+    lwc1 $f0, 0($t3)     # f0 = list[i]
+    move $t7, $t0        # t7 = puntero base (usado para j)
+    li   $t4, 0          #iteration variable j
+    li   $t5, 1          #variable "bool" newValue   (1 = es nuevo) 
 
 loop2CountNum:
-    bge $t4 $t2 check_if_new_valueCountNum #if j = i the loop ends
-    lwc1 $f1 0($t7)
-    c.eq.s $f0 $f1  
-    bc1t not_new_valueCountNum #if list[i] = list[j] the element was already in the list(not a new value) so puts bool newValue to 0 
-    addi $t7 $t7 4
-    addi $t4 $t4 1
+    # bge $t4 $t2 check_if_new_valueCountNum #if j = i the loop ends
+    move $t6, $t4
+    beq  $t6, $t2, check_if_new_valueCountNum
+    lwc1 $f1, 0($t7)     # f1 = list[j]
+    c.eq.s $f0, $f1  
+    bc1t not_new_valueCountNum #if list[i] = list[j] then newValue = 0
+    addiu $t7, $t7, 4
+    addiu $t4, $t4, 1
     j loop2CountNum 
 
 not_new_valueCountNum:
-    li $t5 0          
+    li $t5, 0          
     j check_if_new_valueCountNum      
 
 check_if_new_valueCountNum:
-    beqz $t5 finish_loop2CountNum #if newValue bool is 0 means that there is no new values so there is not an increment
-    addi $t1 $t1 1   
-    
+    beqz $t5 finish_loop2CountNum #si newValue == 0 entonces no incrementamos el contador
+    addiu $t1, $t1, 1   # distinct++
+
 finish_loop2CountNum:
-    addi $t2 $t2 1 
-    addi $t3 $t3 4
+    addiu $t2, $t2, 1   # i++
+    addiu $t3, $t3, 4   # avanzar puntero i
     j loop1CountNum 
     
 finish_loop1CountNum:
-    move $a0 $t1 #takes the counter value to print it
-    li   $v0 1
+    la  $a0, distinctCountMsg
+    li $v0, 4
+    syscall
+    move $a0, $t1 # distinct a0 para imprimir
+    li   $v0, 1
+    syscall
+    la   $a0, newline
+    li   $v0, 4
     syscall
     jr   $ra
     
@@ -393,105 +424,150 @@ fin_media:
 
 BuscarValorMaximo:
      #Guardamos parametros y retorno en pila
-    addi $sp $sp -24
-    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
-    sw $a1 16($sp)
-    sw $a2 12($sp)
-    sw $a3 8($sp)
-    sw $ra 4($sp) #Valor de retorno
+    addiu $sp, $sp, -24
+    sw $a0, 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1, 16($sp)
+    sw $a2, 12($sp)
+    sw $a3, 8($sp)
+    sw $ra, 4($sp) #Valor de retorno
     
-    move $t0 $a0 
-    mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
+    move $t0, $a0 
+    # mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante  (NO usar así)
 
-    #Consideramos f12 como el numero mayor que vamos a imprimir
-    li $t1 0xff7fffff
-    mtc1 $t1 $f12   #Metemos el valor flotante menor en el registro f12 para que el la primera iteracion reciba el primer numero de la lista que queremos comparar
-    
+    # Usamos counter. Si no hay elementos imprimir 0.0
+    lw   $t2, counter
+    beq  $t2, $zero, loop_end_maximo_zero
+
+    la   $t0, floatList
+    lwc1 $f12, 0($t0)    # inicializar numero mayor con primer elemento
+    addiu $t0, $t0, 4
+    addiu $t2, $t2, -1   # ya procesamos 1
+
+    #Consideramos f1 como el numero actual con el que estamos iterando
     loop_maximo:
-        lwc1 $f1 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
-
-        #while(listaNumeros[i] != 0) seguimos iterando
-        c.eq.s $f1 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
-        bc1t   loop_end_maximo #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
+        beqz $t2, loop_end_maximo
+        lwc1 $f1, 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
 
         #if(numeroMayor < listaNumeros[i]) numeroMayor = listaNumeros[i]
-        c.le.s $f12 $f1 #Comparamos si $f12 es menor o igual que $f1 si se cumple entonces tenemos que reasignar
+        c.le.s $f12, $f1 #Comparamos si $f12 es menor o igual que $f1 si se cumple entonces tenemos que reasignar
         bc1f notReasignNumMax #En el caso en el que no se cumpla esta condicion saltamos y no reasignamos, sino reasignamos por defecto
     
-        mov.s $f12 $f1     # numeroMayor = listaNumeros[i]
+        mov.s $f12, $f1     # numeroMayor = listaNumeros[i]
 
         notReasignNumMax:
         #i++
-        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        addiu $t0, $t0, 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        addiu $t2, $t2, -1
         j loop_maximo #Volvemos a iterar
 
     loop_end_maximo:
+        
+        la $a0, maxMsg # imprimir mensaje de numero maximo 
+        li $v0, 4
+        syscall
+        
+        # imprimir f12
+        li $v0, 2
+        syscall
 
-        jal printNum #Si hemos acabado el bucle saltamos para printear el numero que se ha considerado mayor
+        # salto linea
+        la $a0, newline
+        li $v0, 4
+        syscall
 
-        lw $ra 4($sp)
-        lw $a3 8($sp)
-        lw $a2 12($sp)
-        lw $a1 16($sp)
-        lw $a0 20($sp)
-        addi $sp $sp 24
+        lw $ra, 4($sp)
+        lw $a3, 8($sp)
+        lw $a2, 12($sp)
+        lw $a1, 16($sp)
+        lw $a0, 20($sp)
+        addiu $sp, $sp, 24
 
         jr $ra #Volvemos al main
+
+loop_end_maximo_zero:
+    la $a0, maxMsg # imprimir mensaje de numero maximo 
+    li $v0, 4
+    syscall
+    li.s $f12, 0.0
+    li $v0, 2
+    syscall
+    la $a0, newline
+    li $v0, 4
+    syscall
+    lw $ra, 4($sp)
+    addiu $sp, $sp, 24
+    jr $ra
 
 BuscarValorMinimo:
      #Guardamos parametros y retorno en pila
-    addi $sp $sp -24
-    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
-    sw $a1 16($sp)
-    sw $a2 12($sp)
-    sw $a3 8($sp)
-    sw $ra 4($sp) #Valor de retorno
+    addiu $sp, $sp, -24
+    sw $a0, 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1, 16($sp)
+    sw $a2, 12($sp)
+    sw $a3, 8($sp)
+    sw $ra, 4($sp) #Valor de retorno
     
-    move $t0 $a0 
-    mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
+    move $t0, $a0 
+    # mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante (NO usar así)
 
-    #Consideramos f12 como el numero menor que vamos a imprimir
-    li $t1 0x7f7fffff
-    mtc1 $t1 $f12   #Metemos el valor flotante mayor en el registro f12 para que el la primera iteracion reciba el primer numero de la lista que queremos comparar
-    
+    # Usamos counter (numero de elementos) en lugar de sentinel 0. Si no hay elementos imprimir 0.0
+    lw   $t2, counter
+    beq  $t2, $zero, loop_end_minimo_zero
+
+    la   $t0, floatList
+    lwc1 $f12, 0($t0)    # inicializar numero menor con primer elemento
+    addiu $t0, $t0, 4
+    addiu $t2, $t2, -1   # ya procesamos 1
+
     loop_minimo:
-        lwc1 $f1 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
-
-        #while(listaNumeros[i] != 0) seguimos iterando
-        c.eq.s $f1 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
-        bc1t   loop_end_minimo #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
+        beqz $t2, loop_end_minimo
+        lwc1 $f1, 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
 
         #if(numeroMenor > listaNumeros[i]) numeroMenor = listaNumeros[i]
-        c.le.s $f1 $f12 #Comparamos si $f1 es menor o igual que $f12 si se cumple entonces tenemos que reasignar
+        c.le.s $f1, $f12 #Comparamos si $f1 es menor o igual que $f12 si se cumple entonces tenemos que reasignar
         bc1f notReasignNumMin #En el caso en el que no se cumpla esta condicion saltamos y no reasignamos, sino reasignamos por defecto
     
-        mov.s $f12 $f1     # numeroMenor = listaNumeros[i]
+        mov.s $f12, $f1     # numeroMenor = listaNumeros[i]
 
         notReasignNumMin:
         #i++
-        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        addiu $t0, $t0, 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        addiu $t2, $t2, -1
         j loop_minimo #Volvemos a iterar
 
     loop_end_minimo:
+        
+        la $a0, minMsg # imprimir mensaje de numero minimo
+        li $v0, 4
+        syscall
 
-        jal printNum #Si hemos acabado el bucle saltamos para printear el numero que se ha considerado menor
+        # imprimir f12
+        li $v0, 2
+        syscall
 
-        lw $ra 4($sp)
-        lw $a3 8($sp)
-        lw $a2 12($sp)
-        lw $a1 16($sp)
-        lw $a0 20($sp)
-        addi $sp $sp 24
+        la $a0, newline
+        li $v0, 4
+        syscall
+
+        lw $ra, 4($sp)
+        lw $a3, 8($sp)
+        lw $a2, 12($sp)
+        lw $a1, 16($sp)
+        lw $a0, 20($sp)
+        addiu $sp, $sp, 24
 
         jr $ra #Volvemos al main
 
-printNum:
-    
-    li $v0 2
+loop_end_minimo_zero:
+    la $a0, minMsg # imprimir mensaje de numero minimo
+    li $v0, 4
     syscall
-
-    li $v0 11
-    li $a0 10
+    li.s $f12, 0.0
+    li $v0, 2
     syscall
-
+    la $a0, newline
+    li $v0, 4
+    syscall
+    lw $ra, 4($sp)
+    addiu $sp, $sp, 24
     jr $ra
