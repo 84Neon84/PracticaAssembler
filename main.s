@@ -285,7 +285,7 @@ loop1CountNum:
     li   $t5 1  #variable "bool" newValue   
 
 loop2CountNum:
-    bge $t4 $t2 finish_loop2CountNum #if j = i the loop ends
+    bge $t4 $t2 check_if_new_value #if j = i the loop ends
     lwc1 $f1 0($t7)
     c.eq.s $f0 $f1  
     bc1t not_new_valueCountNum #if list[i] = list[j] the element was already in the list(not a new value) so puts bool newValue to 0 
@@ -295,21 +295,23 @@ loop2CountNum:
 
 not_new_valueCountNum:
     li $t5 0          
-    j finish_loop2CountNum      
+    j check_if_new_value      
 
-finish_loop2CountNum:
-    beqz $t5 skip_incrementCountNum #if newValue bool is 0 means that there is no new values so there is not an increment
+check_if_new_value:
+    beqz $t5 finish_loop2CountNum #if newValue bool is 0 means that there is no new values so there is not an increment
     addi $t1 $t1 1   
-skip_incrementCountNum:
+    
+finish_loop2CountNum:
     addi $t2 $t2 1 
     addi $t3 $t3 4
     j loop1CountNum 
+    
 finish_loop1CountNum:
     move $a0 $t1 #takes the counter value to print it
     li   $v0 1
     syscall
     jr   $ra
-
+    
 CalcularMediaAritmetica:
     # PROLOGO
     addiu $sp, $sp, -20
