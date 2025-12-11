@@ -272,43 +272,43 @@ MostrarLista:
 ContarNumeros:
     la   $a0 list
     li   $a1 length
-    li   $t1 0        # different numbers count
-    li   $t2 0        # iteration variable i
+    li   $t1 0  #different values counter      
+    li   $t2 0  #iteration variable i      
     move $t0 $a0      
     move $t3 $t0      
 
 loop1CountNum:
-    bge  $t2 $a1 finishLoop1CountNum #if i>=list size the loop ends
-    lwc1 $f0 0($t3)   
+    bge $t2 $a1 finish_loop1CountNum #if i is >= than the length of the list the loop ends
+    lwc1 $f0 0($t3)
     move $t7 $t0      
-    li   $t4 0        # iteration variable j
+    li   $t4 0  #iteration variable j
+    li   $t5 1  #variable "bool" newValue   
 
 loop2CountNum:
-    beq  $t4 $t2 finishLoop2CountNum #if j = i the loop ends
-    lwc1 $f1 0($t7)   
-    c.eq.s $f0 $f1
-    bc1t addNewValue     #if list[i] = list[j] adds 1 to different numbers count
+    bge $t4 $t2 finish_loop2CountNum #if j = i the loop ends
+    lwc1 $f1 0($t7)
+    c.eq.s $f0 $f1  
+    bc1t not_new_valueCountNum #if list[i] = list[j] the element was already in the list(not a new value) so puts bool newValue to 0 
     addi $t7 $t7 4
     addi $t4 $t4 1
-    j    loop2CountNum
+    j loop2CountNum 
 
-addNewValue:
-    addi $t2 $t2 1
+not_new_valueCountNum:
+    li $t5 0          
+    j finish_loop2CountNum      
+
+finish_loop2CountNum:
+    beqz $t5 skip_incrementCountNum #if newValue bool is 0 means that there is no new values so there is not an increment
+    addi $t1 $t1 1   
+skip_incrementCountNum:
+    addi $t2 $t2 1 
     addi $t3 $t3 4
-    j    loop1CountNum
-
-finishLoop2CountNum:
-    addi $t1 $t1 1
-    addi $t2 $t2 1
-    addi $t3 $t3 4
-    j    loop1CountNum
-
-finishLoop1CountNum:
-    move $a0 $t1
+    j loop1CountNum 
+finish_loop1CountNum:
+    move $a0 $t1 #takes the counter value to print it
     li   $v0 1
     syscall
     jr   $ra
-
 
 CalcularMediaAritmetica:
     # PROLOGO
