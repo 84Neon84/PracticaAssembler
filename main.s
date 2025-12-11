@@ -285,7 +285,7 @@ loop1CountNum:
     li   $t5 1  #variable "bool" newValue   
 
 loop2CountNum:
-    bge $t4 $t2 check_if_new_value #if j = i the loop ends
+    bge $t4 $t2 check_if_new_valueCountNum #if j = i the loop ends
     lwc1 $f1 0($t7)
     c.eq.s $f0 $f1  
     bc1t not_new_valueCountNum #if list[i] = list[j] the element was already in the list(not a new value) so puts bool newValue to 0 
@@ -295,9 +295,9 @@ loop2CountNum:
 
 not_new_valueCountNum:
     li $t5 0          
-    j check_if_new_value      
+    j check_if_new_valueCountNum      
 
-check_if_new_value:
+check_if_new_valueCountNum:
     beqz $t5 finish_loop2CountNum #if newValue bool is 0 means that there is no new values so there is not an increment
     addi $t1 $t1 1   
     
