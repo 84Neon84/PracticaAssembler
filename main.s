@@ -11,11 +11,15 @@ msg1: .asciiz "Ingrese un número en coma flotante (0 para terminar): "
 newline: .asciiz "\n"
 countMsg: .asciiz "Números ingresados: "
 zeroFloat: .float 0.0        # Constante para comparar
+counter: .word 0             # Contador
 
 # Variables para el bubble sort
 list:   .space 200     # 50 floats (ejemplo)
 length: .word 0
 tmp_f:  .space 4       # espacio temporal para swap
+
+# Variables media aritmetica
+mediaMsg: .asciiz "Media aritmetica: "
 
 .text
 .globl main
@@ -97,68 +101,75 @@ op_S:
     syscall
 
 NuevaLista:
-    li $t0, 0                # Contador iniciado en 0
-    la $t1, floatList        # Direccion del inicio de floatList
-    li $t2, 50               # Maximo de floats permitidosç
-    
+    # Inicializar contador y puntero
+    sw $zero, counter         # counter = 0
+    la $t1, floatList         # puntero a la lista
+    li $t2, 50                # maximo de elementos permitidos
+
 inputLoop:
     # PROLOGO
     addiu $sp, $sp, -20
     sw $ra, 16($sp)
-    sw $t0, 12($sp)
-    sw $t1, 8($sp)
-    sw $t2, 4($sp)
-    sw $t3, 0($sp)
-   
+    sw $t1, 12($sp)
+    sw $t2, 8($sp)
+    sw $t3, 4($sp)
+    sw $t0, 0($sp)            # (por si lo usas)
+
     # Imprimir mensaje
     la $a0, msg1
     li $v0, 4
     syscall
-    
-    # Leer float del usuario
+
+    # Leer float
     li $v0, 6
-    syscall
-    
-    # Verificar si la entrada es 0.0
-    la $t3, zeroFloat        # Cargar direccion de cero
-    lwc1 $f1, 0($t3)         # Carga un valor flotante (0.0) desde memoria al registro flotante $f1 (load word to coprocessor 1)
-    c.eq.s $f0, $f1          # Comparar entrada con 0.0 (compare equal simple)
-    bc1t inputDone           # Si es igual, ir a inputDone (branch on coprocessor 1 true)
-    
-    swc1 $f0, 0($t1)         # Guardar float en la dirección (save word coprocessor 1)
-    
-    # Mover a la siguiente posición (4 bytes por float)
+    syscall                   # valor en f0
+
+    # Comparar con 0.0
+    la $t3, zeroFloat
+    lwc1 $f1, 0($t3)
+    c.eq.s $f0, $f1
+    bc1t inputDone
+
+    # Guardar float en lista
+    swc1 $f0, 0($t1)
+
+    # Mover puntero
     addi $t1, $t1, 4
-    addi $t0, $t0, 1         # Incrementar contador en 1
-    
-    # Verificar si hemos llegado a 50 números
+
+    # Incrementar contador: counter++
+    lw $t0, counter
+    addi $t0, $t0, 1
+    sw $t0, counter
+
+    # Si aún no llegamos a 50, continuar
     blt $t0, $t2, inputLoop
 
 inputDone:
-    # Imprimir mensaje de cantidad
+    # Imprimir mensaje
     la $a0, countMsg
     li $v0, 4
     syscall
-    
-    # Imprimir el contador
-    move $a0, $t0            # Mover contador a $a0
-    li $v0, 1                # Imprimir entero 
+
+    # Imprimir valor de counter
+    lw $a0, counter
+    li $v0, 1
     syscall
-    
-    # Imprimir nueva línea
+
+    # Nueva línea
     la $a0, newline
     li $v0, 4
     syscall
-    
-    # Epílogo
+
+    # EPILOGO
     lw $ra, 16($sp)
-    lw $t0, 12($sp)
-    lw $t1, 8($sp)
-    lw $t2, 4($sp)
-    lw $t3, 0($sp)
+    lw $t1, 12($sp)
+    lw $t2, 8($sp)
+    lw $t3, 4($sp)
+    lw $t0, 0($sp)
     addiu $sp, $sp, 20
-    
+
     jr $ra
+
 
 OrdenarLista:
     bubble_sort:
@@ -300,8 +311,83 @@ finishLoop1CountNum:
 
 
 CalcularMediaAritmetica:
-    # 
+    # PROLOGO
+    addiu $sp, $sp, -20
+    sw $ra, 16($sp)
+    sw $t0, 12($sp)
+    sw $t1, 8($sp)
+    sw $t2, 4($sp)
+    sw $t3, 0($sp)
+
+    # Cargar contador
+    lw $t0, counter
+
+    # Si no hay elementos, media = 0
+    beq $t0, $zero, media_cero
+
+    # Preparar puntero a floatList
+    la $t1, floatList
+
+    # Copiar contador en t2
+    move $t2, $t0
+
+    # Inicializar suma: f2 = 0.0
+    li.s $f2, 0.0
+
+suma_loop:
+    lwc1 $f0, 0($t1)      # cargar float actual
+    add.s $f2, $f2, $f0   # suma parcial
+
+    addi $t1, $t1, 4      # avanzar puntero
+    addi $t2, $t2, -1     # contador--
+
+    bgtz $t2, suma_loop   # continuar si quedan
+
+    # Calcular media = suma / total
+    mtc1 $t0, $f4         # pasar contador a coprocesador 1
+    cvt.s.w $f4, $f4      # convertir a float
+
+    div.s $f12, $f2, $f4  # f12 = media
+
+    # Imprimir mensaje
+    la $a0, mediaMsg
+    li $v0, 4
+    syscall
+
+    # Imprimir media
+    li $v0, 2
+    syscall
+
+    # Salto a final
+    b fin_media
+
+
+media_cero:
+    la $a0, mediaMsg
+    li $v0, 4
+    syscall
+
+    li.s $f12, 0.0
+    li $v0, 2
+    syscall
+
+
+fin_media:
+    # Imprimir salto de línea
+    la $a0, newline
+    li $v0, 4
+    syscall
+
+    # EPILOGO
+    lw $ra, 16($sp)
+    lw $t0, 12($sp)
+    lw $t1, 8($sp)
+    lw $t2, 4($sp)
+    lw $t3, 0($sp)
+    addiu $sp, $sp, 20
+
     jr $ra
+
 
 BuscarValorMaximo:
      #Guardamos parametros y retorno en pila
