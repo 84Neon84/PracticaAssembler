@@ -5,6 +5,13 @@ invalidStr: .asciiz "Opcion no valida. Intente de nuevo.\n"
 exitStr:    .asciiz "Saliendo del programa.\n"
 buf:        .space 8
 
+# Variables de Nueva lista
+floatList: .space 200        # Espacio para 50 floats (4 bytes cada uno)
+msg1: .asciiz "Ingrese un número en coma flotante (0 para terminar): "
+newline: .asciiz "\n"
+countMsg: .asciiz "Números ingresados: "
+zeroFloat: .float 0.0        # Constante para comparar
+
 # Variables para el bubble sort
 list:   .space 200     # 50 floats (ejemplo)
 length: .word 0
@@ -90,7 +97,67 @@ op_S:
     syscall
 
 NuevaLista:
-    # 
+    li $t0, 0                # Contador iniciado en 0
+    la $t1, floatList        # Direccion del inicio de floatList
+    li $t2, 50               # Maximo de floats permitidosç
+    
+inputLoop:
+    # PROLOGO
+    addiu $sp, $sp, -20
+    sw $ra, 16($sp)
+    sw $t0, 12($sp)
+    sw $t1, 8($sp)
+    sw $t2, 4($sp)
+    sw $t3, 0($sp)
+   
+    # Imprimir mensaje
+    la $a0, msg1
+    li $v0, 4
+    syscall
+    
+    # Leer float del usuario
+    li $v0, 6
+    syscall
+    
+    # Verificar si la entrada es 0.0
+    la $t3, zeroFloat        # Cargar direccion de cero
+    lwc1 $f1, 0($t3)         # Carga un valor flotante (0.0) desde memoria al registro flotante $f1 (load word to coprocessor 1)
+    c.eq.s $f0, $f1          # Comparar entrada con 0.0 (compare equal simple)
+    bc1t inputDone           # Si es igual, ir a inputDone (branch on coprocessor 1 true)
+    
+    swc1 $f0, 0($t1)         # Guardar float en la dirección (save word coprocessor 1)
+    
+    # Mover a la siguiente posición (4 bytes por float)
+    addi $t1, $t1, 4
+    addi $t0, $t0, 1         # Incrementar contador en 1
+    
+    # Verificar si hemos llegado a 50 números
+    blt $t0, $t2, inputLoop
+
+inputDone:
+    # Imprimir mensaje de cantidad
+    la $a0, countMsg
+    li $v0, 4
+    syscall
+    
+    # Imprimir el contador
+    move $a0, $t0            # Mover contador a $a0
+    li $v0, 1                # Imprimir entero 
+    syscall
+    
+    # Imprimir nueva línea
+    la $a0, newline
+    li $v0, 4
+    syscall
+    
+    # Epílogo
+    lw $ra, 16($sp)
+    lw $t0, 12($sp)
+    lw $t1, 8($sp)
+    lw $t2, 4($sp)
+    lw $t3, 0($sp)
+    addiu $sp, $sp, 20
+    
     jr $ra
 
 OrdenarLista:
