@@ -296,8 +296,7 @@ ContarNumeros:
 
 loop1CountNum:
     #if i is >= than the counter of the list the loop ends
-    move $t4, $t2
-    blt  $t4, $a1, enter_loop1CountNum 
+    blt  $t2, $a1, enter_loop1CountNum 
     j    finish_loop1CountNum
 
 enter_loop1CountNum:
@@ -308,8 +307,7 @@ enter_loop1CountNum:
 
 loop2CountNum:
     #if j = i the loop ends
-    move $t6, $t4
-    beq  $t6, $t2, check_if_new_valueCountNum
+    beq  $t4, $t2, check_if_new_valueCountNum
     lwc1 $f1, 0($t7)     # f1 = list[j]
     c.eq.s $f0, $f1  
     bc1t not_new_valueCountNum #if list[i] = list[j] then newValue = 0
