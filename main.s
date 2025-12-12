@@ -26,6 +26,12 @@ distinctCountMsg: .asciiz "Cantidad de numeros distintos: "
 maxMsg: .asciiz "Valor maximo: "
 # Mensaje valor minimo
 minMsg: .asciiz "Valor minimo: "
+# Mensaje de que no hay valor maximo
+nonMaxMsg: .asciiz "No hay valor maximo\n"
+# Mensaje de que no hay valor minimo
+nonMinMsg: .asciiz "No hay valor minimo\n"
+#Mensaje de que no hay lista
+nonListMsg: .asciiz "No hay lista\n"
 
 .text
 .globl main
@@ -243,45 +249,60 @@ end_bubble:
 
 MostrarLista:
     #Guardamos parametros y retorno en pila
-    addiu $sp, $sp, -24
-    sw $a0, 20($sp)
-    sw $a1, 16($sp)
-    sw $a2, 12($sp)
-    sw $a3, 8($sp)
-    sw $ra, 4($sp)
+    addiu $sp $sp -24
+    sw $a0 20($sp)
+    sw $a1 16($sp)
+    sw $a2 12($sp)
+    sw $a3 8($sp)
+    sw $ra 4($sp)
 
     #int i = counter;    
-    la   $t0, floatList    # puntero a inicio lista
-    lw   $t1, counter      # numero de elementos
+    la   $t0 floatList    # puntero a inicio lista
+    lw   $t1 counter      # numero de elementos
 
     #if(i == 0) return;
-    beq  $t1, $zero, loop_end_mostrar  # si no hay elementos salir
+    beq  $t1 $zero loop_end_mostrar_zero  # si no hay elementos salir
 
-loop_mostrar:
+    loop_mostrar:
 
-    #while(i != 0)
-    beqz $t1, loop_end_mostrar # Si el contador es 0, salir del bucle
+        #while(i != 0)
+        beqz $t1 loop_end_mostrar # Si el contador es 0, salir del bucle
 
-    lwc1 $f12, 0($t0) #Metemos el valor al que apunta t0 a f12 para que posteriormente se pueda imprimir
+        lwc1 $f12 0($t0) #Metemos el valor al que apunta t0 a f12 para que posteriormente se pueda imprimir
 
-    #printf("%f\n", listaNumeros[i]);
-    jal printNum
+        #printf("%f\n", listaNumeros[i]);
+        jal printNum
 
-    #i--;
-    addiu $t0, $t0, 4 # Avanzar al siguiente número (puntero += 4)
-    addiu $t1, $t1, -1 # contador--
-    j loop_mostrar # Continuar
+        #i--;
+        addiu $t0 $t0 4 # Avanzar al siguiente número (puntero += 4)
+        addiu $t1 $t1 -1 # contador--
+        j loop_mostrar # Continuar
 
-loop_end_mostrar:
+    loop_end_mostrar:
 
-    lw $ra, 4($sp)
-    lw $a3, 8($sp)
-    lw $a2, 12($sp)
-    lw $a1, 16($sp)
-    lw $a0, 20($sp)
-    addiu $sp, $sp, 24
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addiu $sp $sp 24
 
-    jr $ra #Volvemos al main
+        jr $ra #Volvemos al main
+
+    loop_end_mostrar_zero:
+        la $a0 nonListMsg      # imprimir mensaje
+        li $v0 4
+        syscall
+
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
+
+        jr $ra
+
 
 
 ContarNumeros:
@@ -422,138 +443,131 @@ fin_media:
 BuscarValorMaximo:
      #Guardamos parametros y retorno en pila
     addiu $sp, $sp, -24
-    sw $a0, 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
-    sw $a1, 16($sp)
-    sw $a2, 12($sp)
-    sw $a3, 8($sp)
-    sw $ra, 4($sp) #Valor de retorno
+    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1 16($sp)
+    sw $a2 12($sp)
+    sw $a3 8($sp)
+    sw $ra 4($sp) #Valor de retorno
     
-    move $t0, $a0 
+    # Usamos counter. Si no hay elementos imprimir que no hay elementos
+    lw   $t2 counter
+    beq  $t2 $zero loop_end_maximo_zero
 
-    # Usamos counter. Si no hay elementos imprimir 0.0
-    lw   $t2, counter
-    beq  $t2, $zero, loop_end_maximo_zero
+    la   $t0 floatList
+    mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
 
-    la   $t0, floatList
-    lwc1 $f12, 0($t0)    # inicializar numero mayor con primer elemento
-    addiu $t0, $t0, 4
-    addiu $t2, $t2, -1   # ya procesamos 1
-
-    #Consideramos f1 como el numero actual con el que estamos iterando
+    #Consideramos f12 como el numero mayor que vamos a imprimir
+    li $t1 0xff7fffff
+    mtc1 $t1 $f12   #Metemos el valor flotante menor en el registro f12 para que el la primera iteracion reciba el primer numero de la lista que queremos comparar
+    
     loop_maximo:
-        beqz $t2, loop_end_maximo
-        lwc1 $f1, 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
+        lwc1 $f1 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
+
+        #while(listaNumeros[i] != 0) seguimos iterando
+        c.eq.s $f1 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
+        bc1t   loop_end_maximo #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
 
         #if(numeroMayor < listaNumeros[i]) numeroMayor = listaNumeros[i]
-        c.le.s $f12, $f1 #Comparamos si $f12 es menor o igual que $f1 si se cumple entonces tenemos que reasignar
+        c.le.s $f12 $f1 #Comparamos si $f12 es menor o igual que $f1 si se cumple entonces tenemos que reasignar
         bc1f notReasignNumMax #En el caso en el que no se cumpla esta condicion saltamos y no reasignamos, sino reasignamos por defecto
     
-        mov.s $f12, $f1     # numeroMayor = listaNumeros[i]
+        mov.s $f12 $f1     # numeroMayor = listaNumeros[i]
 
         notReasignNumMax:
         #i++
-        addiu $t0, $t0, 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
-        addiu $t2, $t2, -1
+        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
         j loop_maximo #Volvemos a iterar
 
     loop_end_maximo:
-        
-        la $a0, maxMsg # imprimir mensaje de numero maximo 
-        li $v0, 4
-        syscall
-        
-        jal printNum
 
-        lw $ra, 4($sp)
-        lw $a3, 8($sp)
-        lw $a2, 12($sp)
-        lw $a1, 16($sp)
-        lw $a0, 20($sp)
-        addiu $sp, $sp, 24
+        jal printNum #Si hemos acabado el bucle saltamos para printear el numero que se ha considerado mayor
+
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
 
         jr $ra #Volvemos al main
+    loop_end_maximo_zero:
+        la $a0 nonMaxMsg      # imprimir mensaje
+        li $v0, 4
+        syscall
 
-loop_end_maximo_zero:
-    la $a0, maxMsg # imprimir mensaje de numero maximo 
-    li $v0, 4
-    syscall
-    li.s $f12, 0.0
-    li $v0, 2
-    syscall
-    la $a0, newline
-    li $v0, 4
-    syscall
-    lw $ra, 4($sp)
-    addiu $sp, $sp, 24
-    jr $ra
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
+
+        jr $ra
+
 
 BuscarValorMinimo:
      #Guardamos parametros y retorno en pila
     addiu $sp, $sp, -24
-    sw $a0, 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
-    sw $a1, 16($sp)
-    sw $a2, 12($sp)
-    sw $a3, 8($sp)
-    sw $ra, 4($sp) #Valor de retorno
+    sw $a0 20($sp) #Valor de la direccion de memoria en la que esta guardado en primer elemento de vector
+    sw $a1 16($sp)
+    sw $a2 12($sp)
+    sw $a3 8($sp)
+    sw $ra 4($sp) #Valor de retorno
     
-    move $t0, $a0 
-    # mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante (NO usar así)
+    # Usamos counter. Si no hay elementos imprimir que no hay elementos
+    lw   $t2 counter
+    beq  $t2 $zero loop_end_minimo_zero
 
-    # Usamos counter (numero de elementos) en lugar de sentinel 0. Si no hay elementos imprimir 0.0
-    lw   $t2, counter
-    beq  $t2, $zero, loop_end_minimo_zero
+    la   $t0 floatList
+    mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante
 
-    la   $t0, floatList
-    lwc1 $f12, 0($t0)    # inicializar numero menor con primer elemento
-    addiu $t0, $t0, 4
-    addiu $t2, $t2, -1   # ya procesamos 1
+    #Consideramos f12 como el numero menor que vamos a imprimir
+    li $t1 0x7f7fffff
+    mtc1 $t1 $f12   #Metemos el valor flotante menor en el registro f12 para que el la primera iteracion reciba el primer numero de la lista que queremos comparar
+    
+    loopMinimo:
+        lwc1 $f1 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
 
-    loop_minimo:
-        beqz $t2, loop_end_minimo
-        lwc1 $f1, 0($t0) #Consideramos $f1 como el numero actual con el que estamos iterando
+        #while(listaNumeros[i] != 0) seguimos iterando
+        c.eq.s $f1 $f0 #Comparamos si el flotante es cero, para saber si la cadena ya ha finalizado
+        bc1t   loop_end_minimo #En el caso en el que el valor decimal sea 0 querrá decir que la cadena ha finalizado, por lo que salimos del bucle
 
-        #if(numeroMenor > listaNumeros[i]) numeroMenor = listaNumeros[i]
-        c.le.s $f1, $f12 #Comparamos si $f1 es menor o igual que $f12 si se cumple entonces tenemos que reasignar
+        #if(numeroMenor < listaNumeros[i]) numeroMenor = listaNumeros[i]
+        c.le.s $f1 $f12 #Comparamos si $f1 es menor o igual que $f12 si se cumple entonces tenemos que reasignar
         bc1f notReasignNumMin #En el caso en el que no se cumpla esta condicion saltamos y no reasignamos, sino reasignamos por defecto
     
-        mov.s $f12, $f1     # numeroMenor = listaNumeros[i]
+        mov.s $f12 $f1     # numeroMenor = listaNumeros[i]
 
         notReasignNumMin:
         #i++
-        addiu $t0, $t0, 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
-        addiu $t2, $t2, -1
-        j loop_minimo #Volvemos a iterar
+        addi $t0 $t0 4 #Posteriormente le sumamos al "puntero" t0 4, para que apunte al siguiente numero decimal
+        j loopMinimo #Volvemos a iterar
 
     loop_end_minimo:
-        
-        la $a0, minMsg # imprimir mensaje de numero minimo
+
+        jal printNum #Si hemos acabado el bucle saltamos para printear el numero que se ha considerado menor
+
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
+
+        jr $ra #Volvemos al main
+    loop_end_minimo_zero:
+        la $a0 nonMinMsg      # imprimir mensaje
         li $v0, 4
         syscall
 
-        jal printNum
+        lw $ra 4($sp)
+        lw $a3 8($sp)
+        lw $a2 12($sp)
+        lw $a1 16($sp)
+        lw $a0 20($sp)
+        addi $sp $sp 24
 
-        lw $ra, 4($sp)
-        lw $a3, 8($sp)
-        lw $a2, 12($sp)
-        lw $a1, 16($sp)
-        lw $a0, 20($sp)
-        addiu $sp, $sp, 24
-
-        jr $ra #Volvemos al main
-
-loop_end_minimo_zero:
-    la $a0, minMsg # imprimir mensaje de numero minimo
-    li $v0, 4
-    syscall
-    li.s $f12, 0.0
-    li $v0, 2
-    syscall
-    la $a0, newline
-    li $v0, 4
-    syscall
-    lw $ra, 4($sp)
-    addiu $sp, $sp, 24
-    jr $ra
+        jr $ra
 
 printNum:
     li $v0, 2 # Imprimir float
