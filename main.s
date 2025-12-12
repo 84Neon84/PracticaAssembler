@@ -285,54 +285,53 @@ loop_end_mostrar:
 
 ContarNumeros:
     la   $a0, floatList
-    lw   $a1, counter   # a1 = numero de elementos (n)
+    lw   $a1, counter   #a1 = numero de elementos (n)
     li   $t1, 0  #contador de numeros distintos     
     li   $t2, 0  #variable de iteracion i     
-    move $t0, $a0      # t0 = base pointer
-    move $t3, $t0      # t3 sera puntero a elemento i
+    move $t0, $a0      #puntero base a la lista
+    move $t3, $t0      #puntero para el bucle 1
 
-    # Si no hay elementos imprimimos 0 y volvemos
+    #si no hay elementos imprimimos 0 y volvemos
     beq  $a1, $zero, finish_loop1CountNum
 
 loop1CountNum:
-    #if i is >= than the counter of the list the loop ends
+    #si i >= numero de elementos el bucle acaba
     blt  $t2, $a1, enter_loop1CountNum 
     j    finish_loop1CountNum
 
 enter_loop1CountNum:
-    lwc1 $f0, 0($t3)     # f0 = list[i]
-    move $t7, $t0        # t7 = puntero base (usado para j)
-    li   $t4, 0          #iteration variable j
-    li   $t5, 1          #variable "bool" newValue   (1 = es nuevo)
+    lwc1 $f0, 0($t3)     #f0 = list[i]
+    move $t7, $t0        #puntero para el bucle 2
+    li   $t4, 0          #variable de iteracion j
+    li   $t5, 1          #variable "bool" newValue se inicializa a 1 dando por hecho que es nuevo valor
 
 loop2CountNum:
-    #if j = i the loop ends
+    #si j=i el bucle acaba
     beq  $t4, $t2, check_if_new_valueCountNum
-    lwc1 $f1, 0($t7)     # f1 = list[j]
-    c.eq.s $f0, $f1  
-    bc1t not_new_valueCountNum #if list[i] = list[j] then newValue = 0
-    addiu $t7, $t7, 4
-    addiu $t4, $t4, 1
-    j loop2CountNum 
+    lwc1 $f1, 0($t7)     #f1 = list[j]
+    c.eq.s $f0, $f1  #se comparan valores de list[i] y list[j]
+    bc1t not_new_valueCountNum #si list[i] = list[j] se salta a etiqueta que cambia valor a newValue
+    addiu $t7, $t7, 4 #avanzamos posicion en el puntero del bucle 2
+    addiu $t4, $t4, 1 #j++
 
 not_new_valueCountNum:
-    li $t5, 0          
+    li $t5, 0  #se pone el valor de newValue a 0
     j check_if_new_valueCountNum      
 
 check_if_new_valueCountNum:
-    beqz $t5 finish_loop2CountNum #si newValue == 0 entonces no incrementamos el contador
-    addiu $t1, $t1, 1   # distinct++
+    beqz $t5 finish_loop2CountNum #si newValue = 0 entonces no incrementamos el contador
+    addiu $t1, $t1, 1   #aumentamos 1 al contador de numeros distintos
 
 finish_loop2CountNum:
-    addiu $t2, $t2, 1   # i++
-    addiu $t3, $t3, 4   # avanzar puntero i
+    addiu $t2, $t2, 1   #i++
+    addiu $t3, $t3, 4   #avanzamos posicion en el puntero del bucle 1
     j loop1CountNum 
     
 finish_loop1CountNum:
     la  $a0, distinctCountMsg
     li $v0, 4
     syscall
-    move $a0, $t1 # distinct a0 para imprimir
+    move $a0, $t1 #almacenamos el contador para mostrarlo
     li   $v0, 1
     syscall
     la   $a0, newline
