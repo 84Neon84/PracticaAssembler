@@ -295,17 +295,16 @@ ContarNumeros:
     beq  $a1, $zero, finish_loop1CountNum
 
 loop1CountNum:
-    # bge $t2 $a1 finish_loop1CountNum #if i is >= than the counter of the list the loop ends
-    # Implementamos comparacion i >= n:
+    #if i is >= than the counter of the list the loop ends
     move $t4, $t2
-    blt  $t4, $a1, cont_outer_count
+    blt  $t4, $a1, enter_loop1CountNum 
     j    finish_loop1CountNum
 
-cont_outer_count:
+enter_loop1CountNum:
     lwc1 $f0, 0($t3)     # f0 = list[i]
     move $t7, $t0        # t7 = puntero base (usado para j)
     li   $t4, 0          #iteration variable j
-    li   $t5, 1          #variable "bool" newValue   (1 = es nuevo) 
+    li   $t5, 1          #variable "bool" newValue   (1 = es nuevo)
 
 loop2CountNum:
     # bge $t4 $t2 check_if_new_valueCountNum #if j = i the loop ends
