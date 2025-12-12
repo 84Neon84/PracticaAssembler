@@ -9,7 +9,7 @@ buf:        .space 8
 .align 2
 floatList: .space 200        # Espacio para 50 floats (4 bytes cada uno)
 msg1: .asciiz "Ingrese un número en coma flotante (0 para terminar): "
-newline: .asciiz "\n\n"
+newline: .asciiz "\n"
 countMsg: .asciiz "Números ingresados: "
 zeroFloat: .float 0.0        # Constante para comparar
 counter: .word 0             # Contador
@@ -250,23 +250,24 @@ MostrarLista:
     sw $a3, 8($sp)
     sw $ra, 4($sp)
 
-    # Usamos floatList y counter
+    #int i = counter;    
     la   $t0, floatList    # puntero a inicio lista
     lw   $t1, counter      # numero de elementos
+
+    #if(i == 0) return;
     beq  $t1, $zero, loop_end_mostrar  # si no hay elementos salir
 
 loop_mostrar:
 
+    #while(i != 0)
     beqz $t1, loop_end_mostrar # Si el contador es 0, salir del bucle
 
     lwc1 $f12, 0($t0) #Metemos el valor al que apunta t0 a f12 para que posteriormente se pueda imprimir
-    li $v0, 2 # Imprimir float
-    syscall
 
-    li $v0, 4 #Movemos el puntero al siguiente numero (4 bytes) y salto de linea
-    la $a0, newline
-    syscall
+    #printf("%f\n", listaNumeros[i]);
+    jal printNum
 
+    #i--;
     addiu $t0, $t0, 4 # Avanzar al siguiente número (puntero += 4)
     addiu $t1, $t1, -1 # contador--
     j loop_mostrar # Continuar
@@ -428,7 +429,6 @@ BuscarValorMaximo:
     sw $ra, 4($sp) #Valor de retorno
     
     move $t0, $a0 
-    # mtc1 $zero $f0 #Metemos el valor cero a f0 convirtiendolo en flotante  (NO usar así)
 
     # Usamos counter. Si no hay elementos imprimir 0.0
     lw   $t2, counter
@@ -462,14 +462,7 @@ BuscarValorMaximo:
         li $v0, 4
         syscall
         
-        # imprimir f12
-        li $v0, 2
-        syscall
-
-        # salto linea
-        la $a0, newline
-        li $v0, 4
-        syscall
+        jal printNum
 
         lw $ra, 4($sp)
         lw $a3, 8($sp)
@@ -537,13 +530,7 @@ BuscarValorMinimo:
         li $v0, 4
         syscall
 
-        # imprimir f12
-        li $v0, 2
-        syscall
-
-        la $a0, newline
-        li $v0, 4
-        syscall
+        jal printNum
 
         lw $ra, 4($sp)
         lw $a3, 8($sp)
@@ -567,3 +554,13 @@ loop_end_minimo_zero:
     lw $ra, 4($sp)
     addiu $sp, $sp, 24
     jr $ra
+
+printNum:
+    li $v0, 2 # Imprimir float
+    syscall
+
+    li $v0, 4 #Movemos el puntero al siguiente numero (4 bytes) y salto de linea
+    la $a0, newline
+    syscall
+    jr $ra
+    
