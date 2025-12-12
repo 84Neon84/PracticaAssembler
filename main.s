@@ -307,7 +307,7 @@ enter_loop1CountNum:
     li   $t5, 1          #variable "bool" newValue   (1 = es nuevo)
 
 loop2CountNum:
-    # bge $t4 $t2 check_if_new_valueCountNum #if j = i the loop ends
+    #if j = i the loop ends
     move $t6, $t4
     beq  $t6, $t2, check_if_new_valueCountNum
     lwc1 $f1, 0($t7)     # f1 = list[j]
